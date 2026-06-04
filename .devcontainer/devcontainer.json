@@ -1,0 +1,49 @@
+{
+  "name": "ShotTracker (edit-only)",
+
+  // Swift公式イメージ。SourceKit-LSPによる補完・構文チェックが効く。
+  // 注意：このコンテナ内ではiOSビルドは不可（Vision/AVFoundation/xcodebuildはmacOS専用）。
+  // ビルドと実機転送はホストのXcodeで行う。コンテナは編集・Git・Claude Code・Codex専用。
+  "image": "swift:6.0",
+
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "swiftlang.swift-vscode",
+        "anthropic.claude-code",
+        "vadimcn.vscode-lldb",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
+    }
+  },
+
+  "mounts": [
+    "source=shottracker-claude-config,target=/home/vscode/.claude,type=volume",
+    "source=shottracker-codex-config,target=/home/vscode/.codex,type=volume"
+  ],
+
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/vscode/.claude"
+  },
+
+  "containerUser": "vscode",
+  "remoteUser": "vscode",
+
+  "forwardPorts": [
+    1455
+  ],
+
+  "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude /home/vscode/.codex || true && npm install -g @openai/codex"
+}

@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Xcode: ビルド（シミュレータ検証用）",
+      "type": "shell",
+      "command": "xcodebuild",
+      "args": [
+        "-project", "ShotTracker.xcodeproj",
+        "-scheme", "ShotTracker",
+        "-destination", "platform=iOS Simulator,name=iPhone 15",
+        "build"
+      ],
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "VS Code内からビルドの通る/通らないだけを確認する用。実機転送はXcodeで行う"
+    },
+    {
+      "label": "Xcode: クリーン",
+      "type": "shell",
+      "command": "xcodebuild",
+      "args": [
+        "-project", "ShotTracker.xcodeproj",
+        "-scheme", "ShotTracker",
+        "clean"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}
