@@ -108,7 +108,7 @@ ShotTracker/
 - `AVCaptureVideoDataOutputSampleBufferDelegate` の実装
 - フレームごとに2つの Vision リクエストを実行：
   1. `VNDetectRectanglesRequest`（`minimumAspectRatio = 0.1`、`maximumObservations = 10`）
-  2. `VNDetectTrajectoriesRequest`（`trajectoryLength = 5`）
+  2. `VNDetectTrajectoriesRequest`（`trajectoryLength = 8`）
 - タップ選択：`pendingTapPoint` に Vision 座標を蓄積し、次フレームで最近傍の人物を選択
 - 簡易トラッキング：前フレーム選択人物との距離が `0.25` 未満の最近傍人物を追跡
 - ROI：選択人物の周囲（上方向に `+0.5` 拡張）に軌道検出を絞り込む
@@ -268,10 +268,10 @@ let bottomRightVision = CGPoint(x: rect.maxX, y: rect.minY)  // Vision の下端
 
 | パラメータ | デフォルト値 | 説明 |
 |---|---|---|
-| `trajectoryLength` | `5` | 軌道と認定するのに必要な最小フレーム数 |
-| `objectMinimumNormalizedRadius` | `0.008` | ボールとして検出する最小サイズ（正規化） |
-| `objectMaximumNormalizedRadius` | `0.2` | ボールとして検出する最大サイズ（正規化） |
-| `confidence > 0.5` | `0.5` | 軌道の信頼度しきい値（`handleTrajectories` 内） |
+| `trajectoryLength` | `8` | 軌道と認定するのに必要な最小フレーム数 |
+| `objectMinimumNormalizedRadius` | `0.01` | ボールとして検出する最小サイズ（正規化） |
+| `objectMaximumNormalizedRadius` | `0.06` | ボールとして検出する最大サイズ（正規化） |
+| `confidence > 0.3` | `0.3` | 軌道の信頼度しきい値（`handleTrajectories` 内） |
 | ROI 上方向拡張 | `box.height + 0.5` | 選択人物周囲の ROI を上方向に拡張する量 |
 | トラッキング乗り換え距離 | `0.25` | この距離を超えた場合は別人として無視 |
 

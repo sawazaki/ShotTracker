@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 新規 `.swift` ファイルを追加したら、Xcode のプロジェクトに登録が必要な旨を
   必ずユーザーに伝えること（VS Code 追加分は .xcodeproj に自動登録されない）
 - `.xcodeproj` はリポジトリに含まれない。ユーザーが Xcode で空の App プロジェクトを
-  作成し、`ShotTracker/` 内の4つの `.swift` を Add Files で取り込む運用
+  作成し、`ShotTracker/` 内の8つの `.swift` を Add Files で取り込む運用
 
 ## ビルドコマンド（検証用）
 シンタックス確認程度に使う。実機転送は Xcode で行うこと。
@@ -38,10 +38,14 @@ xcodebuild -project ShotTracker.xcodeproj -scheme ShotTracker clean
 ## アーキテクチャ
 
 ### コンポーネント
-- `ShotTrackerApp.swift` — SwiftUI エントリポイント。`CameraViewController` を `UIViewControllerRepresentable` でラップする `CameraScreen` を定義
+- `ShotTrackerApp.swift` — SwiftUI エントリポイント。`HomeView` を root とする `NavigationView` を表示。`CameraScreen`（`UIViewControllerRepresentable`）も定義
+- `HomeView.swift` — ホーム画面。「過去の一覧」「新規収録」の2ボタン。「新規収録」は `.fullScreenCover` で `CameraScreen` を開く
+- `SessionListView.swift` — `Documents/videos/` 内の `.mov` 一覧と再生（`AVPlayerViewController`）
 - `CameraManager.swift` — `AVCaptureSession` の構築・起動・停止。解像度フォールバックあり（720p→1080p→high の順に試す）。横向き固定設定もここ
 - `ShotAnalyzer.swift` — `AVCaptureVideoDataOutputSampleBufferDelegate` の実装。人物検出・選択・簡易トラッキング・軌道検出・リリース角度算出をすべて担当
-- `CameraViewController.swift` — 上3つを束ねるコーディネータ。プレビューレイヤー・オーバーレイ描画・タップジェスチャー処理
+- `CameraViewController.swift` — 上クラスを束ねるコーディネータ。プレビューレイヤー・オーバーレイ描画・タップジェスチャー処理・録画制御
+- `RecordingManager.swift` — `AVCaptureMovieFileOutput` を所有。録画開始・停止・`Documents/videos/` への保存を管理
+- `AngleLogger.swift` — リリース角度の収集・平均計算・CSV書き出し（`Documents/angles_*.csv`）
 
 ### データフロー
 ```
@@ -52,18 +56,23 @@ xcodebuild -project ShotTracker.xcodeproj -scheme ShotTracker clean
       3) 選択人物の周辺に regionOfInterest を設定
       4) VNDetectTrajectoriesRequest → handleTrajectories() → リリース角度算出
       5) コールバックをメインスレッドで呼ぶ
-          onPeopleUpdate / onSelectedUpdate / onTrajectory
+          onPeopleUpdate / onSelectedUpdate / onTrajectory / onFrameUpdate
   → CameraViewController（メインスレッド）
       → overlayLayer に人物枠・選択枠・軌道を再描画
       → angleLabel に角度テキストを表示
+      → 録画中なら AngleLogger.record(angle) でデータ収集
+  → 録画停止時
+      → RecordingManager がファイル保存
+      → AngleLogger.saveCSV() で CSV 書き出し
 ```
 
 ### フレームワーク依存
-- `AVFoundation` — CameraManager, CameraViewController
+- `AVFoundation` — CameraManager, CameraViewController, RecordingManager, SessionListView
+- `AVKit` — SessionListView（AVPlayerViewController による動画再生）
 - `Vision` — ShotAnalyzer（VNDetectHumanRectanglesRequest, VNDetectTrajectoriesRequest）
 - `CoreMedia / CoreGraphics` — ShotAnalyzer
 - `UIKit` — CameraViewController
-- `SwiftUI` — ShotTrackerApp のみ
+- `SwiftUI` — ShotTrackerApp, HomeView, SessionListView
 
 ## 座標系の注意（バグの温床なので厳守）
 - Vision座標：左下原点・0〜1 の正規化
@@ -84,7 +93,7 @@ xcodebuild -project ShotTracker.xcodeproj -scheme ShotTracker clean
 ## よく出る調整パラメータ（ShotAnalyzer.swift）
 - `upperBodyOnly`（既定 `false`）— `false`: 全身シルエットで判定。広い条件で検出できる。`true`: 頭・肩のみで判定（より厳しい条件）
 - `trajectoryLength`（軌道認定の最小フレーム数、既定8）
-- `objectMinimumNormalizedRadius / objectMaximumNormalizedRadius`（ボールの見かけサイズ絞り込み）
-- `confidence > 0.8`（handleTrajectories内、軌道の信頼度しきい値）
+- `objectMinimumNormalizedRadius`（既定 `0.01`）/ `objectMaximumNormalizedRadius`（既定 `0.06`）— ボールの見かけサイズ絞り込み
+- `confidence > 0.3`（handleTrajectories内、軌道の信頼度しきい値）
 - ROIの上方向拡張量 `box.height + 0.5`
 - 簡易トラッキングの乗り換え防止距離 `< 0.25`
